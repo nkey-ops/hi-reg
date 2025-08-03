@@ -6,7 +6,7 @@ local M = {}
 ---                          will be created and store all the data
 local Opts = {
     data_dir = vim.fn.glob("~/.cache/nvim/"), -- the path to data files
-    hiregs = nil,
+    hi_regs = nil,
     highlight_groups = nil,
 }
 
@@ -24,8 +24,8 @@ M.setup = function(opts)
     opts.data_dir = utils.handle_data_dir(opts.data_dir)
     Opts = opts
 
-    Opts.hiregs = Opts.data_dir .. '/hi-reg.json'
-    assert(io.open(Opts.hiregs, 'a+')):close()
+    Opts.hi_regs = Opts.data_dir .. '/hi-reg.json'
+    assert(io.open(Opts.hi_regs, 'a+')):close()
 
     Opts.highlight_groups = Opts.data_dir .. '/highlight_groups.json'
     assert(io.open(Opts.highlight_groups, 'a+')):close()
@@ -39,7 +39,7 @@ local default_colors = {
     "Green", "LightGreen", "DarkGreen", "SeaGreen",
     "Blue", "LightBlue", "DarkBlue", "SlateBlue",
     "Cyan", "LightCyan", "DarkCyan",
-    "Magenta", "	LightMagenta", "DarkMagenta",
+    "Magenta", "LightMagenta", "DarkMagenta",
     "Yellow", "LightYellow", "Brown", "DarkYellow",
     "Gray", "LightGray", "DarkGray",
     "Black", "White",
@@ -98,7 +98,7 @@ local function highlight_text(regex, color, filetype)
     -- TODO asign the color that was not used
     -- TODO check if the color exists
     if color then
-        assert(type(color) ~= "string", "color should be of a type 'string'")
+        assert(type(color) == "string", "color should be of a type 'string'")
     else
         color = default_colors[math.random(#default_colors)]
     end
@@ -106,7 +106,7 @@ local function highlight_text(regex, color, filetype)
     -- Check if the filetype exists and is a string
     -- TODO apply to any filetype
     if filetype then
-        assert(type(filetype) ~= "string", "filetype should be of a type 'string'")
+        assert(type(filetype) == "string", "filetype should be of a type 'string'")
     else
         filetype = vim.bo.filetype
     end
@@ -125,7 +125,7 @@ local function highlight_text(regex, color, filetype)
     }
     hi_reg.highlight_group = highlight_group.name;
 
-    local hiregs = utils.get_json_decoded_data(Opts.hiregs)
+    local hiregs = utils.get_json_decoded_data(Opts.hi_regs)
 
     if (hiregs[hi_reg.regex]) then
         local answer = vim.fn.input({
@@ -149,7 +149,7 @@ local function highlight_text(regex, color, filetype)
     end
 
     hiregs[hi_reg.regex] = hi_reg
-    utils.write_data(Opts.hiregs, hiregs)
+    utils.write_data(Opts.hi_regs, hiregs)
 
     local highlight_groups = utils.get_json_decoded_data(Opts.highlight_groups)
     if not highlight_groups[highlight_group.name] then
@@ -176,7 +176,9 @@ local function highlight_text(regex, color, filetype)
         end
     end
 
-    utils.print_wihout_hit_enter("Highlight applied to " .. filetype .. " buffers", vim.log.levels.INFO)
+    utils.print_wihout_hit_enter(
+        string.format("Highlight Created: [s] %s [buffers]",
+            hi_reg.regex, hi_reg.highlight_group, hi_reg.filetypes))
 end
 
 
@@ -209,6 +211,82 @@ vim.api.nvim_create_user_command(
     { nargs = "+", desc = "Highlight text in a specified filetype buffer" }
 )
 
+vim.api.nvim_create_user_command(
+    "HiRegListRegs",
+    function(opts)
+        P(utils.get_json_decoded_data(Opts.hi_regs))
+    end,
+    { desc = "List All Regular Exprestions" }
+)
+vim.api.nvim_create_user_command(
+    "HiRegListHighlights",
+    function(opts)
+        P(utils.get_json_decoded_data(Opts.highlight_groups))
+    end,
+    { desc = "List All Highlights" }
+)
+
+vim.api.nvim_create_user_command(
+    "HiRegDeleteReg",
+    function(opts)
+        local regex = opts.fargs[1]
+        assert(regex, "Regular Expression is not present")
+
+        --- @type HiReg
+        local hi_regs = utils.get_json_decoded_data(Opts.hi_regs)
+        local hi_reg = hi_regs[regex]
+        assert(hi_reg, "Highlighted Regular Expression doesn't exist")
+
+        hi_regs[regex] = nil
+        utils.write_data(Opts.hi_regs, hi_regs)
+
+        -- syntax clear only applies to the current buffer
+        -- so run through each open and check matching filetype
+        -- and clear syntax there
+        -- TODO make it not leave any syntax groups
+        for _, buf in pairs(vim.api.nvim_list_bufs()) do
+            if #hi_reg.filetypes == 0 then
+                vim.api.nvim_buf_call(buf, function()
+                    vim.cmd(
+                        string.format("syntax match HiReg_MyClearGroup '\\v%s'",
+                            hi_reg.regex))
+                    vim.cmd("highlight HiReg_MyClearGroup NONE")
+                end)
+            end
+
+            for _, filetype in pairs(hi_reg.filetypes) do
+                if filetype == vim.bo[buf].filetype then
+                    vim.api.nvim_buf_call(buf, function()
+                        vim.cmd(
+                            string.format("syntax match HiReg_MyClearGroup '\\v%s'",
+                                hi_reg.regex))
+                        vim.cmd("highlight HiReg_MyClearGroup NONE")
+                    end)
+                end
+            end
+        end
+    end,
+    {
+        nargs = 1,
+        complete = function()
+            --- @type HiReg
+            local hi_regs = utils.get_json_decoded_data(Opts.hi_regs)
+            table.sort(hi_regs)
+            local completion = {}
+
+            local i = 1
+            for _, value in pairs(hi_regs) do
+                completion[i] = value.regex
+                i = i + 1
+            end
+            return completion
+        end,
+        desc = "Delete Highligted Regular Expression"
+    }
+
+)
+
+
 vim.api.nvim_create_autocmd({ "BufNew" }, {
     nested = true,
     callback = function(args)
@@ -223,7 +301,7 @@ vim.api.nvim_create_autocmd({ "BufNew" }, {
 
             callback = function(args)
                 --- @type {[string]: HiReg}
-                local hiregs = utils.get_json_decoded_data(Opts.hiregs)
+                local hiregs = utils.get_json_decoded_data(Opts.hi_regs)
                 local highlight_groups = utils.get_json_decoded_data(Opts.highlight_groups)
 
                 for _, hi_reg in pairs(hiregs) do
