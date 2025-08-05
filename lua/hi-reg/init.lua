@@ -179,6 +179,7 @@ local function highlight_text(regex, highlight_group_name, filetype)
                 .. "%s%s"
                 .. "[yes\\no] > ",
                 utils.get_line_separator(),
+                -- the inspect adds a forward slash to a forward slash
                 vim.inspect(hi_regs[hi_reg.regex]),
                 utils.get_line_separator()
             )
@@ -239,6 +240,30 @@ vim.api.nvim_create_user_command(
         local regex = args[1]
         local color = args[2]
         local filetype = args[3]
+
+        if opts.range == 2 then
+            if opts.line1 ~= opts.line2 then
+                vim.notify("A multiline for the Regular Expression is not available. Select within a single line")
+                return
+            end
+
+            local start_row_start_col = vim.api.nvim_buf_get_mark(0, "<")
+            local end_row_end_col = vim.api.nvim_buf_get_mark(0, ">")
+
+            regex = vim.api.nvim_buf_get_text(0,
+                start_row_start_col[1] - 1, -- weird zero based indexing
+                start_row_start_col[2],
+                end_row_end_col[1] - 1,
+                end_row_end_col[2] + 1,
+                {})[1]
+
+            -- literal match with the escape of very no-magic patterns
+            regex = '\\V' .. vim.fn.escape(regex, '\\')
+        else
+            -- TODO based on the configuration options decide the ~magic level~
+            regex = '\\v' .. regex
+        end
+
         if not regex then
             vim.notify("Usage: HighlightRegex <regex> [color] [filetype]", vim.log.levels.ERROR)
             return
@@ -246,7 +271,11 @@ vim.api.nvim_create_user_command(
 
         highlight_text(regex, color, filetype)
     end,
-    { nargs = "+", desc = "Highlight text in a specified filetype buffer" }
+    {
+        nargs = "*",
+        range = true,
+        desc = "Highlight text in a specified filetype buffer"
+    }
 )
 
 vim.api.nvim_create_user_command(
