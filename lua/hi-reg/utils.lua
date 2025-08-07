@@ -234,4 +234,79 @@ function M.print_wihout_hit_enter(...)
     vim.cmd("set messagesopt=" .. messages_opt_value)
 end
 
+--- @param hi_reg HiReg
+--- @return string
+function M.get_command(hi_reg)
+    assert(hi_reg)
+
+    -- Define the command to apply the highlight to the specified filetype
+    -- if &filetype == "%s"
+    -- endif
+    local command = string.format(
+        [[
+        silent! syntax match %s "%s"
+         ]],
+        hi_reg.highlight_group, -- Highlight Group Name
+        hi_reg.regex            -- Escape slashes in regex
+    )
+
+    return command
+end
+
+--- @param hi_reg HiReg
+--- @param hi_regs [HiReg]
+function M.clear_hi_reg_from_buffers(hi_reg, hi_regs)
+    assert(type(hi_reg) == 'table', "hi_reg should be non nil and of the type 'table'")
+    assert(type(hi_regs) == 'table', "hi_regs should be non nil and of the type 'table'")
+
+    --
+    -- 1.* run through each open buffer
+    -- 2. check whether the buffer's filetype matches any
+    --    hi_reg's filetyps / if matches
+    -- 3.* run ':syntax clear "highlight_group"' within the buffer
+    -- 4. go through each hi_reg_saved
+    -- 5. check whether hi_reg_saved.highlight_group
+    --    matches hi_reg.highlight_group / if matches
+    -- 6. check if the hi_reg_saved has any filetypes matching
+    --    the buffer's filetype of the current iteration / if matches
+    -- 7. add the removed :syntax match for the hi_reg_saved
+    --
+    --
+    -- 1.* 'syntax clear' only applies to the current buffer and
+    --      needs to be executed within that buffer
+    -- 3.* ':syntax clear' will remove all matchings regexes for the "highligh_group"
+    --      so we need to restore all others removed with the same regex and buffer
+    for _, buf in pairs(vim.api.nvim_list_bufs()) do
+        if #hi_reg.filetypes == 0 then
+            vim.api.nvim_buf_call(buf, function()
+                vim.cmd("syntax clear " .. hi_reg.highlight_group)
+
+                for _, hi_reg_saved in pairs(hi_regs) do
+                    if hi_reg.highlight_group == hi_reg_saved.highlight_group then
+                        vim.cmd(M.get_command(hi_reg_saved))
+                    end
+                end
+            end)
+        end
+
+        for _, hi_reg_filetype in pairs(hi_reg.filetypes) do
+            if hi_reg_filetype == vim.bo[buf].filetype then
+                vim.api.nvim_buf_call(buf, function()
+                    vim.cmd("syntax clear " .. hi_reg.highlight_group)
+
+                    for _, hi_reg_saved in pairs(hi_regs) do
+                        if hi_reg.highlight_group == hi_reg_saved.highlight_group then
+                            for _, hi_reg_saved_filetype in pairs(hi_reg_saved.filetypes) do
+                                if hi_reg_saved_filetype == vim.bo[buf].filetype then
+                                    vim.cmd(M.get_command(hi_reg_saved))
+                                end
+                            end
+                        end
+                    end
+                end)
+            end
+        end
+    end
+end
+
 return M

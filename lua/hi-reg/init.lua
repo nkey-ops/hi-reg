@@ -90,24 +90,6 @@ local colors = {
 --- @field guifg string?
 --- @field guibg string?
 
---- @param hi_reg HiReg
---- @return string
-local function get_command(hi_reg)
-    assert(hi_reg)
-
-    -- Define the command to apply the highlight to the specified filetype
-    -- if &filetype == "%s"
-    -- endif
-    local command = string.format(
-        [[
-        silent! syntax match %s "\v%s"
-         ]],
-        hi_reg.highlight_group, -- Highlight Group Name
-        hi_reg.regex            -- Escape slashes in regex
-    )
-
-    return command
-end
 
 --- @param regex string regular expression to createa a highlight for
 --- @param highlight_group_name? string default:random color | optional color for highlight
@@ -189,7 +171,7 @@ local function highlight_text(regex, highlight_group_name, filetype)
     -- If hi_reg already exists
     --      ask if we want to overwrite it
     if (hi_regs[hi_reg.regex]) then
-        L.clear_hi_reg_from_buffers(hi_reg)
+        utils.clear_hi_reg_from_buffers(hi_reg, hi_regs)
 
         local answer = vim.fn.input({
             prompt = string.format(
@@ -214,7 +196,7 @@ local function highlight_text(regex, highlight_group_name, filetype)
     hi_regs[hi_reg.regex] = hi_reg
     utils.write_data(Opts.hi_regs, hi_regs)
 
-    local command = get_command(hi_reg)
+    local command = utils.get_command(hi_reg)
     -- execute the command inside each buffer
     for _, buf in pairs(vim.api.nvim_list_bufs()) do
         if #hi_reg.filetypes == 0 then
@@ -282,61 +264,6 @@ vim.api.nvim_create_user_command(
     { desc = "List All Highlights" }
 )
 
---- @param hi_reg HiReg
-L.clear_hi_reg_from_buffers = function(hi_reg)
-    assert(type(hi_reg) == 'table', "hi_reg should be non nil and of the type 'table'")
-
-    local hi_regs = utils.get_json_decoded_data(Opts.hi_regs)
-
-    --
-    -- 1.* run through each open buffer
-    -- 2. check whether the buffer's filetype matches any
-    --    hi_reg's filetyps / if matches
-    -- 3.* run ':syntax clear "highlight_group"' within the buffer
-    -- 4. go through each hi_reg_saved
-    -- 5. check whether hi_reg_saved.highlight_group
-    --    matches hi_reg.highlight_group / if matches
-    -- 6. check if the hi_reg_saved has any filetypes matching
-    --    the buffer's filetype of the current iteration / if matches
-    -- 7. add the removed :syntax match for the hi_reg_saved
-    --
-    --
-    -- 1.* 'syntax clear' only applies to the current buffer and
-    --      needs to be executed within that buffer
-    -- 3.* ':syntax clear' will remove all matchings regexes for the "highligh_group"
-    --      so we need to restore all others removed with the same regex and buffer
-    for _, buf in pairs(vim.api.nvim_list_bufs()) do
-        if #hi_reg.filetypes == 0 then
-            vim.api.nvim_buf_call(buf, function()
-                vim.cmd("syntax clear " .. hi_reg.highlight_group)
-
-                for _, hi_reg_saved in pairs(hi_regs) do
-                    if hi_reg.highlight_group == hi_reg_saved.highlight_group then
-                        vim.cmd(get_command(hi_reg_saved))
-                    end
-                end
-            end)
-        end
-
-        for _, hi_reg_filetype in pairs(hi_reg.filetypes) do
-            if hi_reg_filetype == vim.bo[buf].filetype then
-                vim.api.nvim_buf_call(buf, function()
-                    vim.cmd("syntax clear " .. hi_reg.highlight_group)
-
-                    for _, hi_reg_saved in pairs(hi_regs) do
-                        if hi_reg.highlight_group == hi_reg_saved.highlight_group then
-                            for _, hi_reg_saved_filetype in pairs(hi_reg_saved.filetypes) do
-                                if hi_reg_saved_filetype == vim.bo[buf].filetype then
-                                    vim.cmd(get_command(hi_reg_saved))
-                                end
-                            end
-                        end
-                    end
-                end)
-            end
-        end
-    end
-end
 
 vim.api.nvim_create_user_command(
     "HiRegDeleteReg",
@@ -352,7 +279,7 @@ vim.api.nvim_create_user_command(
         hi_regs[regex] = nil
         utils.write_data(Opts.hi_regs, hi_regs)
 
-        L.clear_hi_reg_from_buffers(hi_reg)
+        utils.clear_hi_reg_from_buffers(hi_reg, hi_regs)
     end,
     {
         nargs = 1,
@@ -402,7 +329,7 @@ vim.api.nvim_create_autocmd({ "BufNew" }, {
                                 highlight_groups[hi_reg.highlight_group].guibg
                             ))
 
-                            vim.cmd(get_command(hi_reg))
+                            vim.cmd(utils.get_command(hi_reg))
                         end
                     end
                 end
