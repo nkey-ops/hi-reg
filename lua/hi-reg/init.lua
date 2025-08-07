@@ -315,7 +315,6 @@ vim.api.nvim_create_user_command(
         complete = function()
             --- @type HiReg
             local hi_regs = utils.get_json_decoded_data(Opts.hi_regs)
-            table.sort(hi_regs)
             local completion = {}
 
             local i = 1
@@ -352,11 +351,13 @@ vim.api.nvim_create_autocmd({ "BufNew" }, {
                     for _, filetype in pairs(hi_reg.filetypes) do
                         if filetype == vim.bo[args.buf].filetype then
                             -- TODO check if hi is not present in data base, don't add
-                            vim.cmd(string.format("highlight %s guifg='%s' guibg='%s'",
-                                hi_reg.highlight_group,
-                                highlight_groups[hi_reg.highlight_group].guifg,
-                                highlight_groups[hi_reg.highlight_group].guibg
-                            ))
+                            if highlight_groups[hi_reg.highlight_group] then
+                                vim.cmd(string.format("highlight %s guifg='%s' guibg='%s'",
+                                    hi_reg.highlight_group,
+                                    highlight_groups[hi_reg.highlight_group].guifg,
+                                    highlight_groups[hi_reg.highlight_group].guibg
+                                ))
+                            end
 
                             vim.cmd(utils.get_command(hi_reg))
                         end

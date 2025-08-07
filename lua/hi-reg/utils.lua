@@ -38,6 +38,7 @@ function M.write_data(file_path, data)
     assert(data ~= nil, "Data cannot be nil")
     assert(type(data) == "table", "Data should be of type table")
 
+    table.sort(data)
     local encoded_data = vim.json.encode(data)
     local file = io.open(file_path, "w")
 
