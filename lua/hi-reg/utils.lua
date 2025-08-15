@@ -310,4 +310,84 @@ function M.clear_hi_reg_from_buffers(hi_reg, hi_regs)
     end
 end
 
+--- @param  cmd_line string line to find which argument the cursor is position at
+--- @param  cursor_pos number - should be between [1, #cmd_line]
+--- @return  number - argument index, 0 - command's name, 1..n+1 arg index
+function M.get_arg_index(cmd_line, cursor_pos)
+    assert(type(cmd_line) == 'string', "cmd_line should be of type 'string'")
+    assert(type(cursor_pos) == 'number', "cursor_pos should be of type 'number'")
+    assert(cursor_pos >= 1 and cursor_pos <= #cmd_line,
+        string.format("cursor_pos should be between [%s,%s]", 1, #cmd_line))
+
+    local empty_space = 32
+    local arg = 0
+    local is_empty_space = true
+    for i, ch in pairs({ string.byte(cmd_line, 1, #cmd_line) }) do
+        if i > cursor_pos then
+            break
+        end
+
+        if is_empty_space and ch ~= empty_space then
+            is_empty_space = false
+        elseif ch == empty_space then
+            arg = arg + 1
+            is_empty_space = true
+        end
+    end
+
+    return arg
+end
+
+--- @class CommandLineArg
+--- @field start number inclusive index where the arg starts
+---                     including any pretended empty space
+--- @field ends number exclusive index where the arg ends
+--- @field content string content of the argument excluding any prepended empty space
+
+--- @class CommandLineArgs
+--- @field index number
+--- @field args [CommandLineArg] 0 - command's name, 1..n+1 arg index
+
+--- @param cmd_line string line to find which argument the cursor is position at
+--- @param cursor_pos number - should be between [1, #cmd_line]
+--- @return CommandLineArgs
+function M.get_arg_indexes(cmd_line, cursor_pos)
+    assert(type(cmd_line) == 'string', "cmd_line should be of type 'string'")
+    assert(type(cursor_pos) == 'number', "cursor_pos should be of type 'number'")
+    assert(cursor_pos >= 1 and cursor_pos <= #cmd_line,
+        string.format("cursor_pos should be between [%s,%s]", 1, #cmd_line))
+
+    local args = { [0] = {} }
+
+    local empty_space = 32
+    local arg = 0
+    local is_empty_space = true
+    local empty_space_ends = 0
+    for i, ch in pairs({ string.byte(cmd_line, 1, #cmd_line) }) do
+        if i > cursor_pos then
+            break
+        end
+
+        if is_empty_space and ch ~= empty_space then
+            is_empty_space = false
+
+            empty_space_ends = i
+        elseif not is_empty_space and ch == empty_space then
+            args[arg].start = arg == 0 and 0 or args[arg - 1].ends
+            args[arg].content = string.sub(cmd_line, empty_space_ends, i - 1)
+            args[arg].ends = i
+
+            arg = arg + 1
+            is_empty_space = true
+            args[arg] = {}
+        end
+    end
+
+    -- TODO make last element more robust
+    return {
+        index = arg,
+        args = args
+    }
+end
+
 return M

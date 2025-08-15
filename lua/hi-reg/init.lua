@@ -277,6 +277,93 @@ vim.api.nvim_create_user_command(
         desc = "Highlight text in a specified filetype buffer"
     }
 )
+vim.api.nvim_create_user_command(
+    "HiRegSetReg",
+    function(opts)
+        local regex = opts.fargs[1]
+        local param = opts.fargs[2]
+        local value = opts.fargs[3]
+
+        --- allow empty value for filetypes
+        --- distinct between all filetypes and empty ""
+        assert(regex and param and value, "1:regex, 2:param and 3:value arguments should be present")
+
+        local hi_regs = utils.get_json_decoded_data(Opts.hi_regs)
+
+        assert(hi_regs[regex], string.format("couldn't find the Highlight Regex using 1:regex: '%s'", regex))
+        assert(param == 'regex'
+            or param == 'highlight_group'
+            or param == 'filetypes',
+            "2:param doesn't match 'regex', 'highlight_group' or 'filetypes'")
+
+        if param == 'filetypes' then
+            local filetypes = {}
+            local s = 1
+            for e = 1, #value do
+                if value:sub(e, e) == ',' then
+                    table.insert(filetypes, value:sub(s, e - 1))
+                    s = e + 1
+                end
+            end
+
+            if s <= #value then
+                table.insert(filetypes, value:sub(s, #value))
+            end
+
+            --- TODO remove duplicates
+            hi_regs[regex].filetypes = filetypes
+        elseif param == 'regex' then
+            -- TODO ask if overwrite is allowed
+            hi_regs[regex].regex = value
+            hi_regs[value] = hi_regs[regex]
+            hi_regs[regex] = nil
+        end
+        --
+        utils.write_data(Opts.hi_regs, hi_regs)
+    end,
+    {
+        nargs = "+",
+        complete = function(arg_lead, cmd_line, cursor_pos)
+            local arg_indexes = utils.get_arg_indexes(cmd_line, cursor_pos)
+            if arg_indexes.index == 1 then
+                --- @type HiReg
+                local hi_regs = utils.get_json_decoded_data(Opts.hi_regs)
+                local completion = {}
+
+                local i = 1
+                for _, value in pairs(hi_regs) do
+                    completion[i] = value.regex
+                    i = i + 1
+                end
+                return completion
+            elseif arg_indexes.index == 2 then
+                return {
+                    "regex",
+                    "highlight_group",
+                    "filetypes"
+                }
+            elseif arg_indexes.index == 3 then
+                --- @type [HiReg]
+                local hi_regs = utils.get_json_decoded_data(Opts.hi_regs)
+
+                local regex = arg_indexes.args[1].content
+                local property = arg_indexes.args[2].content
+
+                if not hi_regs[regex] or not hi_regs[regex][property] then
+                    return {}
+                end
+
+                -- TODO make empty filetype "" be selected
+                if property == 'filetypes' then
+                    return { table.concat(hi_regs[regex].filetypes, ',') }
+                end
+
+                return { hi_regs[regex][property] }
+            end
+        end,
+        desc = "Set Property of The Regular Expression"
+    }
+)
 
 vim.api.nvim_create_user_command(
     "HiRegListRegs",
