@@ -417,9 +417,14 @@ vim.api.nvim_create_user_command(
 )
 
 
-vim.api.nvim_create_autocmd({ "BufNew" }, {
+vim.api.nvim_create_autocmd({ "BufNew", "VimEnter" }, {
     nested = true,
     callback = function(args)
+        if args.event == "VimEnter" then
+            M.load_hi_regx_for_filetype(vim.bo[args.buf].filetype)
+            return
+        end
+
         -- Uses nested autocmd because `vim.api.nvim_buf_line_count(args.buf)` would return zero
         vim.api.nvim_create_autocmd({ "BufEnter" }, {
             once = true,
@@ -430,29 +435,33 @@ vim.api.nvim_create_autocmd({ "BufNew" }, {
             buffer = args.buf,
 
             callback = function(args)
-                --- @type {[string]: HiReg}
-                local hi_regs = utils.get_json_decoded_data(Opts.hi_regs)
-                local highlight_groups = utils.get_json_decoded_data(Opts.highlight_groups)
-
-                for _, hi_reg in pairs(hi_regs) do
-                    for _, filetype in pairs(hi_reg.filetypes) do
-                        if filetype == vim.bo[args.buf].filetype then
-                            -- TODO check if hi is not present in data base, don't add
-                            if highlight_groups[hi_reg.highlight_group] then
-                                vim.cmd(string.format("highlight %s guifg='%s' guibg='%s'",
-                                    hi_reg.highlight_group,
-                                    highlight_groups[hi_reg.highlight_group].guifg,
-                                    highlight_groups[hi_reg.highlight_group].guibg
-                                ))
-                            end
-
-                            vim.cmd(utils.get_command(hi_reg))
-                        end
-                    end
-                end
+                M.load_hi_regx_for_filetype(vim.bo[args.buf].filetype)
             end
         })
     end
 })
 
+
+M.load_hi_regx_for_filetype = function(filetype)
+    --- @type {[string]: HiReg}
+    local hi_regs = utils.get_json_decoded_data(Opts.hi_regs)
+    local highlight_groups = utils.get_json_decoded_data(Opts.highlight_groups)
+
+    for _, hi_reg in pairs(hi_regs) do
+        for _, hi_reg_filetype in pairs(hi_reg.filetypes) do
+            if hi_reg_filetype == filetype then
+                -- TODO check if hi is not present in data base, don't add
+                if highlight_groups[hi_reg.highlight_group] then
+                    vim.cmd(string.format("highlight %s guifg='%s' guibg='%s'",
+                        hi_reg.highlight_group,
+                        highlight_groups[hi_reg.highlight_group].guifg,
+                        highlight_groups[hi_reg.highlight_group].guibg
+                    ))
+                end
+
+                vim.cmd(utils.get_command(hi_reg))
+            end
+        end
+    end
+end
 return M
