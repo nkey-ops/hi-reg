@@ -254,8 +254,14 @@ function M.get_command(hi_reg)
     return command
 end
 
+--- Removes the provided hi_reg from buffers the hi_reg is attached to (hi_reg.filtypes)
+--- Restores all HiRegs in the hi_regs array due to limitation of the
+--- ':syntext clear <highligh_group>' command
+--- Restores a hi_reg in the array if it:
+---     - matches the same highlight_group as the hi_reg
+---     - present in the same filetype as the hi_reg
 --- @param hi_reg HiReg
---- @param hi_regs [HiReg]
+--- @param hi_regs [HiReg] to restore
 function M.clear_hi_reg_from_buffers(hi_reg, hi_regs)
     assert(type(hi_reg) == 'table', "hi_reg should be non nil and of the type 'table'")
     assert(type(hi_regs) == 'table', "hi_regs should be non nil and of the type 'table'")
