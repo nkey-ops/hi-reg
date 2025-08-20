@@ -448,6 +448,18 @@ M.load_hi_regx_for_filetype = function(filetype)
     local highlight_groups = utils.get_json_decoded_data(Opts.highlight_groups)
 
     for _, hi_reg in pairs(hi_regs) do
+        if #hi_reg.filetypes == 0 then
+            if highlight_groups[hi_reg.highlight_group] then
+                vim.cmd(string.format("highlight %s guifg='%s' guibg='%s'",
+                    hi_reg.highlight_group,
+                    highlight_groups[hi_reg.highlight_group].guifg,
+                    highlight_groups[hi_reg.highlight_group].guibg
+                ))
+            end
+
+            vim.cmd(utils.get_command(hi_reg))
+        end
+
         for _, hi_reg_filetype in pairs(hi_reg.filetypes) do
             if hi_reg_filetype == filetype then
                 -- TODO check if hi is not present in data base, don't add
