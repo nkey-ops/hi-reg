@@ -108,53 +108,13 @@ local function highlight_text(regex, highlight_group_name, filetype)
         regex = regex,
         filetypes = {}
     }
+
     -- Check if the color exists and is a string
-    -- TODO asign the color that was not used
-    -- TODO check if the color exists
     if highlight_group_name then
         assert(type(highlight_group_name) == "string", "highlight_group_name should be of a type 'string'")
         hi_reg.highlight_group = highlight_group_name
     else
-        local is_black_contrast = math.random() >= 0.5
-        local is_fg_main = math.random() >= 0.5
-        local guifg, guibg
-
-        if is_black_contrast then
-            local random_color = colors.black_contrast[math.random(#colors.black_contrast)]
-            guifg = is_fg_main and "Black" or random_color
-            guibg = not is_fg_main and "Black" or random_color
-        else
-            local random_color = colors.white_contrast[math.random(#colors.white_contrast)]
-            guifg = is_fg_main and "White" or random_color
-            guibg = not is_fg_main and "White" or random_color
-        end
-
-        -- TODO escape color
-        -- Create highlight group if it doesn't exist
-        -- TODO deal with conflicts when gsub will
-        -- replace from different pattersn characters and turn them into the same group
-        -- local highlight_group = color
-        --- @type Highlight_Group
-        local highlight_group = {
-            name = "HiReg_" .. guifg .. "__" .. guibg,
-            guifg = guifg,
-            guibg = guibg
-        }
-
-        vim.cmd(string.format("highlight %s guifg='%s' guibg='%s'",
-            highlight_group.name,
-            highlight_group.guifg,
-            highlight_group.guibg
-        ))
-
-        hi_reg.highlight_group = highlight_group.name
-
-        -- if the hi_group is not stored, store it
-        local highlight_groups = utils.get_json_decoded_data(Opts.highlight_groups)
-        if not highlight_groups[highlight_group.name] then
-            highlight_groups[highlight_group.name] = highlight_group
-            utils.write_data(Opts.highlight_groups, highlight_groups)
-        end
+        hi_reg.highlight_group = M.create_random_hi_group()
     end
 
     -- Check if the filetype exists and is a string
@@ -197,6 +157,63 @@ local function highlight_text(regex, highlight_group_name, filetype)
     hi_regs[hi_reg.regex] = hi_reg
     utils.write_data(Opts.hi_regs, hi_regs)
 
+    M.set_hi_reg(hi_reg)
+
+    utils.print_wihout_hit_enter(
+        string.format("HiReg Created: regex:[%s], highlight_group:[%s], filetypes:%s",
+            hi_reg.regex, hi_reg.highlight_group, vim.inspect(hi_reg.filetypes)))
+end
+
+-- TODO asign the color that was not used
+-- TODO check if the color exists
+--- @return string - created highlight group name
+M.create_random_hi_group = function()
+    local is_black_contrast = math.random() >= 0.5
+    local is_fg_main = math.random() >= 0.5
+    local guifg, guibg
+
+    if is_black_contrast then
+        local random_color = colors.black_contrast[math.random(#colors.black_contrast)]
+        guifg = is_fg_main and "Black" or random_color
+        guibg = not is_fg_main and "Black" or random_color
+    else
+        local random_color = colors.white_contrast[math.random(#colors.white_contrast)]
+        guifg = is_fg_main and "White" or random_color
+        guibg = not is_fg_main and "White" or random_color
+    end
+
+    -- TODO escape color
+    -- Create highlight group if it doesn't exist
+    -- TODO deal with conflicts when gsub will
+    -- replace from different pattersn characters and turn them into the same group
+    -- local highlight_group = color
+    --- @type Highlight_Group
+    local highlight_group = {
+        name = "HiReg_" .. guifg .. "__" .. guibg,
+        guifg = guifg,
+        guibg = guibg
+    }
+
+    vim.cmd(string.format("highlight %s guifg='%s' guibg='%s'",
+        highlight_group.name,
+        highlight_group.guifg,
+        highlight_group.guibg
+    ))
+
+    -- if the hi_group is not stored, store it
+    local highlight_groups = utils.get_json_decoded_data(Opts.highlight_groups)
+    if not highlight_groups[highlight_group.name] then
+        highlight_groups[highlight_group.name] = highlight_group
+        utils.write_data(Opts.highlight_groups, highlight_groups)
+    end
+
+    return highlight_group.name
+end
+
+--- @param hi_reg HiReg
+M.set_hi_reg = function(hi_reg)
+    assert(hi_reg)
+
     local command = utils.get_command(hi_reg)
     -- execute the command inside each buffer
     for _, buf in pairs(vim.api.nvim_list_bufs()) do
@@ -214,13 +231,7 @@ local function highlight_text(regex, highlight_group_name, filetype)
             end
         end
     end
-
-    utils.print_wihout_hit_enter(
-        string.format("Highlight Created: [s] %s [buffers]",
-            hi_reg.regex, hi_reg.highlight_group, hi_reg.filetypes))
 end
-
-
 
 
 -- highlight for any file type
