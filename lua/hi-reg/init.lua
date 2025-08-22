@@ -270,8 +270,9 @@ vim.api.nvim_create_user_command(
 
             -- literal match with the escape of very no-magic patterns
             regex = '\\V' .. vim.fn.escape(regex, '\\')
+            regex = regex:gsub('%s', '\\s')
         else
-            -- TODO based on the configuration options decide the ~magic level~
+            -- TODO: FEAT: based on the configuration options decide the ~magic level~
             regex = '\\v' .. regex
         end
 
