@@ -298,18 +298,38 @@ vim.api.nvim_create_user_command(
 
         --- allow empty value for filetypes
         --- distinct between all filetypes and empty ""
-        assert(regex and param and value, "1:regex, 2:param and 3:value arguments should be present")
+        -- assert(regex and param and value, "1:regex, 2:param and 3:value arguments should be present")
 
         local hi_regs = utils.get_json_decoded_data(Opts.hi_regs)
 
+        assert(regex, "1:regex argument should be present")
         assert(hi_regs[regex], string.format("couldn't find the Highlight Regex using 1:regex: '%s'", regex))
+
+        assert(param, "2:param argument should be present")
         assert(param == 'regex'
             or param == 'highlight_group'
             or param == 'filetypes',
             "2:param doesn't match 'regex', 'highlight_group' or 'filetypes'")
 
+        if param == 'regex' and value == nil then
+            assert(value, "3:value argument should be present for param:" .. param)
+        end
+
+
+        --- @type HiReg
+        local hi_reg_old = {
+            regex = regex,
+            highlight_group = hi_regs[regex].highlight_group,
+            filetypes = hi_regs[regex].filetypes,
+            exclude_filetypes = {}
+        }
+
         if param == 'filetypes' then
             local filetypes = {}
+            if value == nil then
+                value = "" -- any filetype
+            end
+
             local s = 1
             for e = 1, #value do
                 if value:sub(e, e) == ',' then
@@ -329,9 +349,15 @@ vim.api.nvim_create_user_command(
             hi_regs[regex].regex = value
             hi_regs[value] = hi_regs[regex]
             hi_regs[regex] = nil
+            -- keeping the regex as the pointer to the updated hi_reg
+            regex = value
+        elseif param == 'highlight_group' then
+            hi_regs[regex].highlight_group = value and value or M.create_random_hi_group()
         end
-        --
+
         utils.write_data(Opts.hi_regs, hi_regs)
+        utils.clear_hi_reg_from_buffers(hi_reg_old, hi_regs)
+        M.set_hi_reg(hi_regs[regex])
     end,
     {
         nargs = "+",
