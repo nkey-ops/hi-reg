@@ -406,9 +406,39 @@ vim.api.nvim_create_user_command(
 vim.api.nvim_create_user_command(
     "HiRegListRegs",
     function(opts)
-        P(utils.get_json_decoded_data(Opts.hi_regs))
+        local fargs = opts.fargs
+        if #fargs == 0 then
+            print(vim.inspect(utils.get_json_decoded_data(Opts.hi_regs)))
+        elseif #fargs == 1 then
+            local regex = fargs[1]
+            local hi_regs = utils.get_json_decoded_data(Opts.hi_regs)
+            if hi_regs[regex] then
+                print(vim.inspect(hi_regs[regex]))
+            else
+                print(string.format("HiRegListRegs: Couldn't find a HiReg using the regex:[%s]", regex))
+            end
+        else
+            print("HiRegListRegs: Number of arguments can be only 0 or 1")
+        end
     end,
-    { desc = "List All Regular Exprestions" }
+    {
+        nargs = "*",
+        complete = function()
+            --- @type HiReg
+            local hi_regs = utils.get_json_decoded_data(Opts.hi_regs)
+            local completion = {}
+
+            local i = 1
+            for _, value in pairs(hi_regs) do
+                completion[i] = value.regex
+                i = i + 1
+            end
+            return completion
+        end,
+        desc =
+            "No Args: List All HiRegs\n"
+            .. "1 Arg: List A HiReg Matching the Regular Expression"
+    }
 )
 vim.api.nvim_create_user_command(
     "HiRegListHighlights",
