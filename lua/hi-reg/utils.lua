@@ -286,24 +286,35 @@ function M.clear_hi_reg_from_buffers(hi_reg, hi_regs)
     for _, buf in pairs(vim.api.nvim_list_bufs()) do
         if #hi_reg.filetypes == 0 then
             vim.api.nvim_buf_call(buf, function()
-                vim.cmd("syntax clear " .. hi_reg.highlight_group)
+                vim.cmd({ cmd = "syntax", args = { "clear", hi_reg.highlight_group } })
 
                 for _, hi_reg_saved in pairs(hi_regs) do
                     if hi_reg.highlight_group == hi_reg_saved.highlight_group then
-                        vim.cmd(M.get_command(hi_reg_saved))
+                        if #hi_reg_saved.filetypes == 0 then
+                            vim.cmd(M.get_command(hi_reg_saved))
+                        end
+                        for _, hi_reg_saved_filetype in pairs(hi_reg_saved.filetypes) do
+                            if hi_reg_saved_filetype == vim.bo[buf].filetype then
+                                vim.cmd(M.get_command(hi_reg_saved))
+                            end
+                        end
                     end
                 end
             end)
+            return
         end
 
         for _, hi_reg_filetype in pairs(hi_reg.filetypes) do
             if hi_reg_filetype == vim.bo[buf].filetype then
                 vim.api.nvim_buf_call(buf, function()
-                    vim.cmd("syntax clear " .. hi_reg.highlight_group)
+                    vim.cmd({ cmd = "syntax", args = { "clear", hi_reg.highlight_group } })
 
                     for _, hi_reg_saved in pairs(hi_regs) do
                         if hi_reg.highlight_group == hi_reg_saved.highlight_group then
                             for _, hi_reg_saved_filetype in pairs(hi_reg_saved.filetypes) do
+                                if #hi_reg_saved.filetypes == 0 then
+                                    vim.cmd(M.get_command(hi_reg_saved))
+                                end
                                 if hi_reg_saved_filetype == vim.bo[buf].filetype then
                                     vim.cmd(M.get_command(hi_reg_saved))
                                 end
