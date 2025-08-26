@@ -333,7 +333,12 @@ vim.api.nvim_create_user_command(
             local s = 1
             for e = 1, #value do
                 if value:sub(e, e) == ',' then
-                    table.insert(filetypes, value:sub(s, e - 1))
+                    local filetype = value:sub(s, e - 1)
+                    -- allow to specify empty filetypes using double quotes
+                    if filetype == '""' then
+                        filetype = ''
+                    end
+                    table.insert(filetypes, filetype)
                     s = e + 1
                 end
             end
