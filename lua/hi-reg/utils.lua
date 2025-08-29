@@ -236,22 +236,20 @@ function M.print_wihout_hit_enter(...)
 end
 
 --- @param hi_reg HiReg
---- @return string
+--- @return table
 function M.get_command(hi_reg)
     assert(hi_reg)
 
     -- Define the command to apply the highlight to the specified filetype
-    -- if &filetype == "%s"
-    -- endif
-    local command = string.format(
-        [[
-        silent! syntax match %s "%s"
-         ]],
-        hi_reg.highlight_group, -- Highlight Group Name
-        hi_reg.regex            -- Escape slashes in regex
-    )
 
-    return command
+    return {
+        cmd = "syntax",
+        args = {
+            "match",
+            hi_reg.highlight_group,
+            '"' .. hi_reg.regex .. '"'
+        }
+    }
 end
 
 --- Removes the provided hi_reg from buffers the hi_reg is attached to (hi_reg.filtypes)
