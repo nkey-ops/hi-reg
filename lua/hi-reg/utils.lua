@@ -405,4 +405,22 @@ function M.get_arg_indexes(cmd_line, cursor_pos)
     }
 end
 
+---@param hi_regs [HiReg]
+M.print = function(hi_regs)
+    assert(type(hi_regs) == 'table', "param hi_regs should be of type 'table'")
+
+    local str = ""
+    for key, value in pairs(hi_regs) do
+        if str ~= "" then
+            str = str .. "\n"
+        end
+
+        str = string.format("%sregex = \"%s\"\n", str, value.regex)
+        str = string.format("%sfiletypes = %s\n", str, vim.inspect(value.filetypes))
+        str = string.format("%shighligh_group = %s\n", str, vim.inspect(value.highlight_group))
+    end
+
+    print(str)
+end
+
 return M

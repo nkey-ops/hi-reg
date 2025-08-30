@@ -413,12 +413,12 @@ vim.api.nvim_create_user_command(
     function(opts)
         local fargs = opts.fargs
         if #fargs == 0 then
-            print(vim.inspect(utils.get_json_decoded_data(Opts.hi_regs)))
+            utils.print(utils.get_json_decoded_data(Opts.hi_regs))
         elseif #fargs == 1 then
             local regex = fargs[1]
             local hi_regs = utils.get_json_decoded_data(Opts.hi_regs)
             if hi_regs[regex] then
-                print(vim.inspect(hi_regs[regex]))
+                utils.print({ hi_regs[regex] })
             else
                 print(string.format("HiRegListRegs: Couldn't find a HiReg using the regex:[%s]", regex))
             end
