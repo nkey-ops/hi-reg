@@ -82,7 +82,7 @@ local colors = {
 --- @field regex string
 --- @field highlight_group string
 --- @field filetypes [string]
---- @field exclude_filetypes [string]
+--- @field exclude_filetypes [string]?
 ---
 
 --- @class Highlight_Group
@@ -331,8 +331,8 @@ vim.api.nvim_create_user_command(
             end
 
             local s = 1
-            for e = 1, #value do
-                if value:sub(e, e) == ',' then
+            for e = 1, #value + 1 do
+                if e == #value + 1 or value:sub(e, e) == ',' then
                     local filetype = value:sub(s, e - 1)
                     -- allow to specify empty filetypes using double quotes
                     if filetype == '""' then
@@ -343,9 +343,14 @@ vim.api.nvim_create_user_command(
                 end
             end
 
-            if s <= #value then
-                table.insert(filetypes, value:sub(s, #value))
-            end
+            -- if s <= #value then
+            --     local filetype = value:sub(s, #value)
+            --     -- allow to specify empty filetypes using double quotes
+            --     if filetype == '""' then
+            --         filetype = ''
+            --     end
+            --     table.insert(filetypes, filetype)
+            -- end
 
             --- TODO remove duplicates
             hi_regs[regex].filetypes = filetypes
