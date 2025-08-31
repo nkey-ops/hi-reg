@@ -1,8 +1,8 @@
 # Features
-- Use Regular Expression to add highlight (see `:help highlight`) of the text.
+- Use Regular Expressions to add highlights (see `:help highlight`) to text.
 - Persistent across different sessions because everything is stored as Json files.
 - Assign any highlight group to the text you want to highlight 
-- Use automatically created highlight groups that give a good contrast.
+- Use automatically created highlight groups that provide a good contrast.
 - Assign highlights to different buffers based on their `filetypes` (see `:help filetype`)
 
 # Commands
