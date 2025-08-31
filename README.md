@@ -32,6 +32,5 @@ In order to see the list of all the created highlights you can use `HiRegListReg
 
 1. `[regex]` is **optional** and allows to find the highlight based on its regex 
     - if not present, all the stored highlights will be shown
-    ![HiRegListRegs Example](./data/HiRegListRegs-Example.mp4) 
 
-<video src="./data/HiRegListRegs-Example.mp4" controls></video>
+    <img width=450 src="./data/HiRegListRegs-Example.gif"/>
