@@ -25,6 +25,8 @@ The first command will be `HiReg` that allows to highlight regexes.
 - Highlights are unique based on the regular expression provided (might be changed in the future with support cwd based highlights)
 - Each regex will be pre-pended with `\v` making it a `very magic` regular expression (see `:help \v`). So writing something like `test` will be stored as `\vtest`. *In future it can be changed.*
 
+<img width=500 src="./data/HiReg-Example.gif"/>
+
 ## HiRegListRegs
 In order to see the list of all the created highlights you can use `HiRegListRegs` command.
 
