@@ -1,5 +1,5 @@
 # Features
-- User Regular Expression to add highlight (see `:help highlight`) of the text.
+- Use Regular Expression to add highlight (see `:help highlight`) of the text.
 - Persistent across different sessions because everything is stored as Json files.
 - Assign any highlight group to the text you want to highlight 
 - Use automatically created highlight groups that give a good contrast.
