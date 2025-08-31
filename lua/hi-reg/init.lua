@@ -7,10 +7,10 @@
 
 local utils = require("hi-reg.utils")
 local M = {}
-local L = {}
 
 --- @class HiRegOpts configurations for the hi-reg
---- @field data_dir string?  default:"~/.cache/nvim/" | directory where "hi-reg" directory
+--- @field data_dir string?  default:"~/.cache/nvim/" | path where "hi-reg"
+---                          directory will store data
 ---                          will be created and store all the data
 local Opts = {
     data_dir = vim.fn.glob("~/.cache/nvim/"), -- the path to data files
@@ -135,12 +135,13 @@ local function highlight_text(regex, highlight_group_name, filetype)
 
         local answer = vim.fn.input({
             prompt = string.format(
-                "Do you want to override the highlight?%s"
+                "Do you want to override the highlight?%s%s"
                 .. "%s%s"
                 .. "[yes\\no] > ",
                 utils.get_line_separator(),
+                utils.get_line_separator(),
                 -- the inspect adds a forward slash to a forward slash
-                vim.inspect(hi_regs[hi_reg.regex]),
+                utils.get_print({ hi_regs[hi_reg.regex] }),
                 utils.get_line_separator()
             )
         }):lower()
@@ -184,8 +185,6 @@ M.create_random_hi_group = function()
 
     -- TODO escape color
     -- Create highlight group if it doesn't exist
-    -- TODO deal with conflicts when gsub will
-    -- replace from different pattersn characters and turn them into the same group
     -- local highlight_group = color
     --- @type Highlight_Group
     local highlight_group = {
@@ -463,11 +462,13 @@ vim.api.nvim_create_user_command(
     "HiRegDeleteReg",
     function(opts)
         local regex = opts.fargs[1]
+        -- TODO just print an error
         assert(regex, "Regular Expression is not present")
 
         --- @type HiReg
         local hi_regs = utils.get_json_decoded_data(Opts.hi_regs)
         local hi_reg = hi_regs[regex]
+        -- TODO just print an error
         assert(hi_reg, "Highlighted Regular Expression doesn't exist")
 
         hi_regs[regex] = nil

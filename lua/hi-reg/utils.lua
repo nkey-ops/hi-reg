@@ -406,7 +406,7 @@ function M.get_arg_indexes(cmd_line, cursor_pos)
 end
 
 ---@param hi_regs [HiReg]
-M.print = function(hi_regs)
+M.get_print = function(hi_regs)
     assert(type(hi_regs) == 'table', "param hi_regs should be of type 'table'")
 
     local str = ""
@@ -420,7 +420,12 @@ M.print = function(hi_regs)
         str = string.format("%shighligh_group = %s\n", str, vim.inspect(value.highlight_group))
     end
 
-    print(str)
+    return (str)
+end
+
+---@param hi_regs [HiReg]
+M.print = function(hi_regs)
+    print(M.get_print(hi_regs))
 end
 
 return M
